@@ -1,34 +1,35 @@
-// src/components/TodoList.js
-import React, { useState } from 'react';
-import { List, Checkbox, Button, Input, Form, Row, Col, Typography } from 'antd';
+import React from 'react';
+import { List, Checkbox, Button, Input, Form, Row, Col, Typography ,message} from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
+import { connect } from 'react-redux';
+import { addTodo, toggleTodo, deleteTodo, } from '../store/actions/todoList';
+import { isDuplicateTodo } from '../utils/validations';
 
 const { Title } = Typography;
 
-const initialTodos = [
-  { id: 1, title: 'Buy groceries', email: 'xyz@gmail.com', completed: false },
-  { id: 2, title: 'Walk the dog', email: 'abc@gmail.com', completed: true },
-  { id: 3, title: 'Read a book', email: 'stv@gmail.com', completed: false },
-];
+const mapStateToProps = (state) => ({
+  todos: state.todos.todos
+});
 
-const TodoList = () => {
-  const [todos, setTodos] = useState(initialTodos);
-  const [newTodo, setNewTodo] = useState('');
+const mapDispatchToProps = {
+  addTodo,
+  toggleTodo,
+  deleteTodo
+};
 
-  const toggleCompletion = (id) => {
-    setTodos(todos.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo));
-  };
 
-  const deleteTodo = (id) => {
-    setTodos(todos.filter(todo => todo.id !== id));
-  };
+const TodoList = (props) => {
+  const { todos, addTodo, toggleTodo, deleteTodo }=props;
+  const [form] = Form.useForm();
 
-  const addTodo = () => {
-    if (newTodo.trim() === '') return;
-    const newId = todos.length ? todos[todos.length - 1].id + 1 : 1;
-    const todo = { id: newId, title: newTodo, email: '', completed: false };
-    setTodos([...todos, todo]);
-    setNewTodo('');
+  const handleAddTodo = (values) => {
+    if (isDuplicateTodo(todos, values.newTodo)) {
+      message.error('Duplicate to-do item. Please enter a unique to-do.');
+      return;
+    }
+
+    addTodo(values.newTodo);
+    form.resetFields(); 
   };
 
   return (
@@ -40,7 +41,7 @@ const TodoList = () => {
         renderItem={item => (
           <List.Item
             actions={[
-              <Checkbox checked={item.completed} onChange={() => toggleCompletion(item.id)}>Completed</Checkbox>,
+              <Checkbox checked={item.completed} onChange={() => toggleTodo(item.id)}>{item.completed?'Completed':'Uncompleted'}</Checkbox>,
               <Button type="primary" danger icon={<DeleteOutlined />} onClick={() => deleteTodo(item.id)} />
             ]}
           >
@@ -48,18 +49,14 @@ const TodoList = () => {
           </List.Item>
         )}
       />
-      <Form onFinish={addTodo}>
+      <Form form={form} onFinish={handleAddTodo}>
         <Row gutter={16}>
           <Col span={16}>
             <Form.Item
               name="newTodo"
               rules={[{ required: true, message: 'Please enter a to-do item' }]}
             >
-              <Input
-                value={newTodo}
-                onChange={(e) => setNewTodo(e.target.value)}
-                placeholder="Add a new to-do item"
-              />
+              <Input placeholder="Add a new to-do item" />
             </Form.Item>
           </Col>
           <Col span={8}>
@@ -71,4 +68,5 @@ const TodoList = () => {
   );
 };
 
-export default TodoList;
+
+export default connect(mapStateToProps, mapDispatchToProps)(TodoList);
